@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarefas</title>
+<style>
+  :root { --bg:#0f1115; --card:#181b22; --line:#262a33; --fg:#e8eaf0; --mute:#8a90a0; --acc:#7c5cff; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:start center; padding:48px 16px;
+         background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, sans-serif; }
+  main { width:100%; max-width:480px; }
+  h1 { font-size:1.6rem; margin:0 0 20px; letter-spacing:-.02em; }
+  form { display:flex; gap:8px; margin-bottom:16px; }
+  input[type=text] { flex:1; padding:12px 14px; border-radius:10px; border:1px solid var(--line);
+         background:var(--card); color:var(--fg); font:inherit; }
+  input[type=text]:focus { outline:2px solid var(--acc); border-color:transparent; }
+  button { cursor:pointer; border:0; border-radius:10px; font:inherit; }
+  form button { padding:0 18px; background:var(--acc); color:#fff; font-weight:600; }
+  ul { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+  li { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--card);
+       border:1px solid var(--line); border-radius:10px; }
+  li span { flex:1; }
+  li.feita span { color:var(--mute); text-decoration:line-through; }
+  li input { accent-color:var(--acc); width:18px; height:18px; }
+  li button { background:none; color:var(--mute); font-size:1.1rem; }
+  li button:hover { color:#ff6b6b; }
+  .vazio { color:var(--mute); text-align:center; padding:24px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tarefas</h1>
+  <form id="form">
+    <input type="text" id="titulo" placeholder="Nova tarefa…" autocomplete="off" required>
+    <button>Adicionar</button>
+  </form>
+  <ul id="lista"></ul>
+</main>
+
+<script>
+const API = '/api/tarefas';
+const lista = document.getElementById('lista');
+
+async function carregar() {
+  const tarefas = await (await fetch(API)).json();
+  lista.innerHTML = tarefas.length ? '' : '<p class="vazio">Nenhuma tarefa ainda.</p>';
+  for (const t of tarefas) {
+    const li = document.createElement('li');
+    li.className = t.concluida ? 'feita' : '';
+    li.innerHTML = `<input type="checkbox" ${t.concluida ? 'checked' : ''}><span></span><button title="Excluir">✕</button>`;
+    li.querySelector('span').textContent = t.titulo;
+    li.querySelector('input').onchange = async () => { await fetch(`${API}/${t.id}/alternar`, { method:'PUT' }); carregar(); };
+    li.querySelector('button').onclick = async () => { await fetch(`${API}/${t.id}`, { method:'DELETE' }); carregar(); };
+    lista.appendChild(li);
+  }
+}
+
+document.getElementById('form').onsubmit = async e => {
+  e.preventDefault();
+  const input = document.getElementById('titulo');
+  await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ titulo: input.value }) });
+  input.value = '';
+  carregar();
+};
+
+carregar();
+</script>
+</body>
+</html>
